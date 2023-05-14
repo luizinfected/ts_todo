@@ -1,36 +1,57 @@
-import React, {useState, ChangeEvent, FormEvent, useEffect} from 'react'
+import React, { useState, ChangeEvent, FormEvent, useEffect } from 'react'
+
 //CSS
 import styles from './TaskForm.module.css'
-const {AceBase} = require ('acebase')
+import { Button } from '@mui/material';
+//interface
+import { ITask } from './../interfaces/Task';
 
 
-  
-  interface Props {
-    btnText: string,
-  }
-  
-  function TaskForm({ btnText, }: Props) {
+interface Props {
+  btnText: string,
+  taskList: ITask[],
+  setTaskList?: React.Dispatch<React.SetStateAction<ITask[]>>
+  task?: ITask | null;
+  handleUpdate?(id: number, title: string, difficulty: number): void;
+}
+
+function TaskForm({ btnText, taskList, setTaskList, task, handleUpdate }: Props) {
 
   const [id, setId] = useState<number>(0)
   const [title, setTitle] = useState<string>('')
+  const [difficulty, setDifficulty] = useState<number>(0)
 
-  const addTaskHandler = async(e: FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    if (task) {
+      setId(task.id)
+      setTitle(task.title)
+      setDifficulty(task.difficulty)
+    }
+  }, [task])
+
+
+  
+  const addTaskHandler = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    const id = Math.floor(Math.random() * 1000)
-    const db = await AceBase.WithIndexedDB('db', { autoSave: true });
-    console.log('iniciado o banco')
-    const tasksRef = await db.ref('/tasks');
-    tasksRef.set({
-      title: { title: title, done: false },
-    });
-    tasksRef.set()
-    console.log(tasksRef)
+    if (handleUpdate) {
+      handleUpdate(id, title, difficulty)
+    } else {
+      const id = Math.floor(Math.random() * 1000)
+      const newTask: ITask = { id, title, difficulty }
+      setTaskList!([...taskList, newTask])
+      setTitle('')
+      setDifficulty(0)
+    }
+
   }
 
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setTitle(e.target.value)
-    console.log(title)
+    if (e.target.name === 'title') {
+      setTitle(e.target.value)
+    } else {
+      setDifficulty(parseInt(e.target.value))
+    }
   }
 
   return (
@@ -38,12 +59,18 @@ const {AceBase} = require ('acebase')
       <div className={styles.input_container}>
         <label>
           <span>Título:</span>
-          <input type="text" name='title' placeholder='Título da tarefa' 
-          onChange={handleChange}/>
+          <input type="text" name='title' placeholder='Título da tarefa' value={title}
+            onChange={handleChange} />
+        </label>
+        <label>
+          <span>Dificuldade:</span>
+          <input type="text" name='difficulty' placeholder='Digite a dificildade da tarefa' value={difficulty}
+            onChange={handleChange} />
         </label>
       </div>
 
-      <input type="submit" value={btnText} />
+      <Button type="submit" variant="contained">{btnText}</Button>
+      {/* <input type="submit" value={btnText} /> */}
     </form>
   )
 }

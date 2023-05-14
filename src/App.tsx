@@ -1,73 +1,76 @@
+import React from 'react';
+
 //css
 import styles from './App.module.css'
+
 //components
 import Header from './components/Header';
 import Footer from './components/Footer';
 import TaskForm from './components/TaskForm';
 import TaskList from './components/TaskList';
+import Modal from './components/Modal';
+
 
 //hooks
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
+//interface
+import { ITask } from './interfaces/Task'
 
 function App() {
-  const { AceBase } = require('acebase')
 
-  interface ITask {
-    id: string;
-    title: string;
+  const [taskList, setTaskList] = useState<ITask[]>([])
+  const [taskToUpdate, setTaskToUpdate] = useState<ITask | null>(null)
+
+  const deleteTask = (id: number) => {
+    setTaskList(
+      taskList.filter(task => {
+        return task.id !== id
+      })
+    )
   }
-  const activate = () => {
-    
-  }
 
-  const [tasks, setTasks] = useState<ITask[]>([])
-
-  useEffect(() => {
-    const loadData = async () => {
-      const db = await AceBase.WithIndexedDB('db', { autoSave: true });
-      const tasksRef = await db.ref('/tasks');
-
-      // tasksRef.set({ 
-      //   'task1': { title: 'Comprar pão', done: false }, 
-      //   'task2': { title: 'Fazer exercícios', done: true } 
-      // });
-      
-      // await db.ref('tasks').remove().then(() => {console.log('removido')})
-
-      const tasksDB: ITask[] = []
-
-      await tasksRef.forEach((taskSnapshot: any) => {
-        tasksDB.push(taskSnapshot.val() as ITask)
-      });
-
-      setTasks(tasksDB)
-      console.log(tasks)
+  const hideOrShowModal = (display: boolean) => {
+    const modal = document.querySelector("#modal")
+    if (display) {
+      modal!.classList.remove('hide')
+    } else {
+      modal!.classList.add('hide')
     }
+  };
 
-    loadData()
-  }, []);
- 
+  const editTask = (task: ITask): void => {
+    hideOrShowModal(true)
+    setTaskToUpdate(task)
+  }
+
+  const updateTask = (id: number, title: string, difficulty: number) => {
+    const updatedTask: ITask = { id, title, difficulty }
+
+    const updatedItems = taskList.map((task) => {
+      return task.id === updatedTask.id ? updatedTask : task
+    })
+
+    setTaskList(updatedItems)
+
+    hideOrShowModal(false)
+  }
+
   return (
     <div>
+
+      <Modal children={<TaskForm handleUpdate={updateTask} task={taskToUpdate} btnText='Editar tarefa' taskList={taskList} />} />
+
       <Header />
       <main className={styles.main}>
         <div>
           <h2>O que você vai fazer?</h2>
-          <TaskForm btnText='Criar Tarefa' />
+          <TaskForm btnText='Criar Tarefa' taskList={taskList} setTaskList={setTaskList} />
         </div>
 
         <div>
           <h2>Suas tarefas:</h2>
-          <TaskList />
-          <ul>
-            {tasks && tasks.map(task => (
-              <li key={task.id}>
-                <p>{task.title}</p>
-              </li>
-            ))}
-          </ul>
-
+          <TaskList taskList={taskList} handleDelete={deleteTask} handleEdit={editTask} />
         </div>
       </main>
       <Footer />
